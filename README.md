@@ -86,6 +86,13 @@ Do something on the repo and watch terminal 1 light up. With the default
 
 ## Configuring: `forge.yml`
 
+> [!NOTE]
+> **Which events and actions can I use?** Any GitHub webhook event type and its
+> actions — the authoritative list is GitHub's
+> [Webhook events and payloads](https://docs.github.com/en/webhooks/webhook-events-and-payloads).
+> Every event type you reference must also appear in `events:` so the forwarder
+> subscribes to it.
+
 This is the whole contract — the events you watch and the jobs they run:
 
 ```yaml
@@ -102,12 +109,6 @@ routes:
 Resolution order for each delivery: an exact `event.action` route, then a bare
 `event` route, then the `jobs/<event>.<action>.js` filename convention. Edit
 `forge.yml` or any job and the **next event** picks up the change — no restart.
-
-> **Which events and actions can I use?** Any GitHub webhook event type and its
-> actions — the authoritative list is GitHub's
-> [Webhook events and payloads](https://docs.github.com/en/webhooks/webhook-events-and-payloads).
-> Every event type you reference must also appear in `events:` so the forwarder
-> subscribes to it.
 
 ## Writing a job
 
