@@ -1,0 +1,15 @@
+{
+  "name": "github-forge",
+  "version": "0.1.0",
+  "description": "Locally run GitHub Actions using gh and webhooks.",
+  "bin": { "forge": "forge.js" },
+  "scripts": {
+    "start": "node forge.js",
+    "forward": "./forward.sh"
+  },
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

@@ -1,0 +1,48 @@
+# forge.yml — what webhooks we subscribe to and how we respond.
+#
+# No secrets here (FORGE_SECRET lives in .env, which is gitignored). ${VAR}
+# is filled from the environment.
+
+# Repo to watch. Prefer setting FORGE_REPO in .env; this is a fallback.
+repo: ${FORGE_REPO}
+
+# Webhook event types to subscribe to (passed to `gh webhook forward`).
+events:
+  - issues
+  - pull_request
+  - issue_comment
+
+# event.action  ->  job file. A job receives ctx (event, action, payload, repo,
+# sender, log, run, gh) plus ctx.config — this route's `config:` block.
+# Resolution: an exact "event.action" wins, else a bare "event", else the
+# jobs/<event>.<action>.js file convention.
+routes:
+  # Log everything, so you can see it working (logs/events.jsonl).
+  - on: issues
+    run: jobs/log.js
+  - on: pull_request
+    run: jobs/log.js
+  - on: issue_comment
+    run: jobs/log.js
+
+  # ---------------------------------------------------------------------------
+  # Connect the forge to AI agents with the `agents` CLI. Uncomment and tailor.
+  # Jobs honor FORGE_DRY_RUN=1 (log instead of act) — keep it set until happy.
+  # ---------------------------------------------------------------------------
+  #
+  # - on: issues.assigned
+  #   run: jobs/assign-to-agent.js
+  #   config:
+  #     assignee: my-bot          # only when the issue is assigned to this login
+  #     type: default             # agents --type to create
+  #     default_lead: lead-a      # team/lead the new agent reports to
+  #     project: myproject        # stamped as agent meta (queryable)
+  #     route:                    # first label/keyword match wins
+  #       - { lead: search-lead, label: "solr|search" }
+  #       - { lead: tags-lead,   label: "tag|subject|genre" }
+  #
+  # - on: issue_comment.created
+  #   run: jobs/forward-comment.js
+  #   config:
+  #     pr_author: my-bot         # only forward on PRs opened by this login
+  #     allow: [alice, bob]       # GitHub logins allowed to drive the agent
