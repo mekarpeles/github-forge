@@ -103,6 +103,12 @@ Resolution order for each delivery: an exact `event.action` route, then a bare
 `event` route, then the `jobs/<event>.<action>.js` filename convention. Edit
 `forge.yml` or any job and the **next event** picks up the change — no restart.
 
+> **Which events and actions can I use?** Any GitHub webhook event type and its
+> actions — the authoritative list is GitHub's
+> [Webhook events and payloads](https://docs.github.com/en/webhooks/webhook-events-and-payloads).
+> Every event type you reference must also appear in `events:` so the forwarder
+> subscribes to it.
+
 ## Writing a job
 
 A job is a file that exports an async function taking a `ctx`:
@@ -125,6 +131,29 @@ module.exports = async (ctx) => {
 
 `ctx`: `event`, `action`, `payload`, `config`, `repo`, `sender`, `log(...)`,
 `run(cmd, args)`, `gh(args)`.
+
+## Recipes
+
+Common, practical routes live in [`forge.example.yml`](forge.example.yml) with
+their jobs in [`examples/`](examples/). Copy what you want into `forge.yml`.
+
+| When…                                    | route(s)                                                        | the trick |
+|------------------------------------------|----------------------------------------------------------------|-----------|
+| a comment on an issue **or** PR          | `issue_comment.created`                                         | a PR comment carries `issue.pull_request` |
+| an issue/PR is opened                    | `issues.opened`, `pull_request.opened`                         | `ctx.event` tells them apart |
+| a label is added/removed on an issue/PR  | `issues.labeled`/`unlabeled`, `pull_request.labeled`/`unlabeled` | `ctx.action` = added vs removed; `payload.label` |
+| a PR is taken out of draft               | `pull_request.ready_for_review`                                | a dedicated action, no guessing |
+| a PR is merged (not just closed)         | `pull_request.closed`                                           | only when `payload.pull_request.merged` is true |
+| CI fails on a PR                         | `check_run.completed`                                          | act only when `conclusion === 'failure'` (add `check_run` to `events:`) |
+
+## Tests
+
+```bash
+npm test     # node --test, zero extra deps
+```
+
+Covers signature verification, route resolution, config/`${ENV}` loading, and an
+end-to-end signed delivery through the HTTP server.
 
 ## Connecting agents
 
@@ -150,11 +179,28 @@ instead of acting) — keep that set until you're happy with the matching.
 - The server binds to `127.0.0.1` only.
 - Jobs run with *your* shell and credentials. Only run jobs you've read.
 
-## A standing subscription
+## Keeping it running
 
-`gh webhook forward` runs only while its terminal is open. For always-on, create
-a real webhook pointing at a stable public URL you control and send it to this
-same `forge.js` — the dispatch is identical, only the transport changes.
+`gh webhook forward` runs only while its process is alive, so for anything
+beyond an open terminal, run the two processes under a supervisor that restarts
+them and survives logout:
+
+- **tmux** (simplest) — start `node forge.js` and `./forward.sh` in two panes of
+  a detached session so they keep running after you disconnect:
+  ```bash
+  tmux new -d -s forge 'cd ~/github-forge && set -a; . ./.env; set +a; node forge.js'
+  tmux new -d -s forward 'cd ~/github-forge && ./forward.sh'
+  ```
+- **systemd** (Linux, always-on) — two `--user` services (one per process) with
+  `Restart=always`, enabled with `loginctl enable-linger` so they start at boot.
+- **launchd** (macOS) — two `LaunchAgents` plists with `KeepAlive=true`.
+
+`forward.sh` already auto-reconnects when the websocket drops; the supervisor
+covers crashes, reboots, and logout.
+
+For a truly server-side subscription (no long-running local process at all),
+create a real webhook pointing at a stable public URL you control and send it to
+this same `forge.js` — the dispatch is identical, only the transport changes.
 
 ## License
 

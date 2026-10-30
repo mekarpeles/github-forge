@@ -1,0 +1,47 @@
+# forge.example.yml — a cookbook of common, practical routes.
+#
+# Copy the routes you want into forge.yml. Note the `events:` list must include
+# every event type your routes use (e.g. check_run for the CI recipe).
+# Full event/action reference:
+#   https://docs.github.com/en/webhooks/webhook-events-and-payloads
+
+repo: ${FORGE_REPO}
+
+events:
+  - issues
+  - pull_request
+  - issue_comment
+  - check_run          # needed for the "CI failed" recipe
+
+routes:
+  # A comment on an issue or a PR (PRs carry issue.pull_request).
+  - on: issue_comment.created
+    run: examples/comment-on-issue-or-pr.js
+
+  # An issue or a PR was opened.
+  - on: issues.opened
+    run: examples/opened.js
+  - on: pull_request.opened
+    run: examples/opened.js
+
+  # A label was added/removed on an issue or a PR.
+  - on: issues.labeled
+    run: examples/label-changed.js
+  - on: issues.unlabeled
+    run: examples/label-changed.js
+  - on: pull_request.labeled
+    run: examples/label-changed.js
+  - on: pull_request.unlabeled
+    run: examples/label-changed.js
+
+  # A PR was taken out of draft.
+  - on: pull_request.ready_for_review
+    run: examples/pr-ready-for-review.js
+
+  # A PR was merged (closed + merged == true).
+  - on: pull_request.closed
+    run: examples/pr-merged.js
+
+  # CI failed on a PR (requires `check_run` in events: above).
+  - on: check_run.completed
+    run: examples/ci-failed.js
